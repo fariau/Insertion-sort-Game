@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Insertion Sort Crane</title>
+    <style>
+        :root {
+            box-sizing: border-box;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            --bg: #07090f;
+            --fg: #f4f6fb;
+            --mut: #8b94a8;
+            --acc: #ffb020
+        }
+
+        html {
+            scroll-padding-top: env(safe-area-inset-top, 0px)
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--fg);
+            font-family: system-ui, Segoe UI, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden
+        }
+
+        .w {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 46px;
+            flex: none;
+            gap: 8px;
+            padding: 0 12px
+        }
+
+        .top b {
+            font-size: 16px;
+            letter-spacing: .5px
+        }
+
+        .top div {
+            display: flex;
+            gap: 6px
+        }
+
+        .pill {
+            background: none;
+            border: 1px solid #2b3a5c;
+            color: var(--fg);
+            border-radius: 99px;
+            font-size: 13px;
+            padding: 6px 12px;
+            cursor: pointer
+        }
+
+        #back {
+            visibility: hidden;
+            color: var(--mut)
+        }
+
+        body.imm .top {
+            position: absolute;
+            top: 0;
+            left: auto;
+            right: 0;
+            height: auto;
+            padding: 8px;
+            z-index: 5
+        }
+
+        body.imm .top b {
+            display: none
+        }
+
+        body.imm .pill {
+            background: rgba(7, 9, 15, .55)
+        }
+
+        .stage {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(ellipse at 50% 30%, #141c30, #07090f)
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: manipulation
+        }
+
+        #ov {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(7, 9, 15, .6);
+            backdrop-filter: blur(2px)
+        }
+
+        .card {
+            background: #fffaf0;
+            color: #1f2433;
+            border-radius: 18px;
+            padding: 16px 18px;
+            width: 84%;
+            max-width: 340px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .5)
+        }
+
+        .card .ic {
+            font-size: 30px;
+            line-height: 1
+        }
+
+        .card h2 {
+            margin: 4px 0 2px;
+            font-size: 20px
+        }
+
+        .card p {
+            margin: 0 0 10px;
+            font-size: 12px;
+            color: #5b6377;
+            line-height: 1.4
+        }
+
+        .row {
+            display: flex;
+            gap: 8px
+        }
+
+        .row button {
+            flex: 1;
+            border: none;
+            border-radius: 99px;
+            padding: 10px 6px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer
+        }
+
+        #bp {
+            background: #e8553d
+        }
+
+        #bw {
+            background: #2f7fd0
+        }
+
+        .row button:active {
+            opacity: .8
+        }
+
+        #ctl {
+            display: none;
+            gap: 8px;
+            justify-content: center;
+            padding: 10px 0;
+            flex: none
+        }
+    </style>
+</head>
+
+<body>
+    <div class="w">
+        <div class="top"><b>INSERTION SORT</b>
+            <div><button class="pill" id="snd">🔊</button><button class="pill" id="fs">⛶</button><button class="pill"
+                    id="back">☰ Menu</button></div>
+        </div>
+        <div class="stage">
+            <canvas id="cv"></canvas>
+            <div id="ov">
+                <div class="card">
+                    <div class="ic">🏗️</div>
+                    <h2 id="ct">Insertion Sort</h2>
+                    <p id="cs">Pick up a block, shift the bigger ones right, then drop it in its place.</p>
+                    <div class="row"><button id="bp">▶ Play</button><button id="bw">👁 Watch</button></div>
+                </div>
+            </div>
+        </div>
+        <div id="ctl"><button class="pill" id="pz">⏸ Pause</button><button class="pill" id="sp">⏩ 1×</button><button
+                class="pill" id="sh">🔀 Shuffle</button></div>
+    </div>
+    <script>
+        const cv = document.getElementById('cv'), g = cv.getContext('2d'), msg = {}, stat = {};
+        const ov = document.getElementById('ov'), back = document.getElementById('back'), ctl = document.getElementById('ctl');
+        const LV = [6, 8, 10, 12], D = 12, $ = id => document.getElementById(id), stg = document.querySelector('.stage');
+        let BASE = 350, SH = 400, LW = 600, SC = 1, TX = 0, TY = 0, DPR = 1, CW = 600, CH = 400;
+        let N = 10, S = 52, X0 = 0, U = 20, W = 42;
+        let mode = 'watch', st, i, j, fin, wait = 0, mist = 0, last = 0, fT = 0, lvl = 1, total = 0, score = 0, combo = 0, cont = false, paused = false, spd = 1, parts = [], shake = 0;
+        /* ---------- audio ---------- */
+        let AC, MG, mute = false, mT, nt = 0, step = 0;
+        const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+        function audio() {
+            if (!AC) {try {AC = new (window.AudioContext || window.webkitAudioContext)(); MG = AC.createGain(); MG.gain.value = .6; MG.connect(AC.destination)} catch (e) {return } }
+            if (AC.state === 'suspended') AC.resume()
+        }
+        function tone(f, d, type, vol, when) {
+            if (mute || !AC) return; const t = AC.currentTime + (when || 0), o = AC.createOscillator(), gn = AC.createGain();
+            o.type = type || 'sine'; o.frequency.value = f; gn.gain.setValueAtTime(vol || .2, t); gn.gain.exponentialRampToValueAtTime(.001, t + d);
+            o.connect(gn); gn.connect(MG); o.start(t); o.stop(t + d + .02)
+        }
+        function sched() {
+            if (mute || !AC) return;
+            while (nt < AC.currentTime + .4) {
+                const bar = Math.floor(step / 8) % 4, k = step % 8, r = [48, 45, 41, 43][bar], th = [4, 3, 4, 4][bar], p = [0, 7, 12, th + 12, 12, 7, 12, 7][k], w = nt - AC.currentTime;
+                tone(mf(r + 12 + p), .35, 'triangle', .05, w); if (k === 0) tone(mf(r - 12), 1, 'sine', .1, w); if (k === 4) tone(mf(r), .5, 'sine', .04, w); step++; nt += .27
+            }
+        }
+        function music() {audio(); if (AC && !mT) {nt = AC.currentTime + .1; mT = setInterval(sched, 150)} }
+        const sfx = {
+            pick: () => tone(392, .12, 'sine', .18), shift: () => tone(260, .1, 'square', .07),
+            good: () => {tone(600 + combo * 40, .12, 'triangle', .2)}, drop: () => {tone(523, .1, 'sine', .2); tone(784, .18, 'sine', .2, .08)},
+            bad: () => tone(130, .3, 'sawtooth', .14), win: () => [523, 659, 784, 1047, 1319].forEach((f, k) => tone(f, .3, 'triangle', .2, k * .12))
+        };
+        $('snd').onclick = () => {mute = !mute; $('snd').textContent = mute ? '🔇' : '🔊'; if (!mute) {audio(); music(); nt = AC.currentTime + .1} };
+        /* ---------- game ---------- */
+        function setN(n) {N = n; S = Math.min(64, Math.floor((LW - 60) / N)); W = S - 10; X0 = (LW - N * S) / 2 + 3; U = Math.min(44, Math.max(10, Math.min(BASE - 150, 480) / N))}
+        function layout() {const r = stg.getBoundingClientRect(); if (!r.width || !r.height) return; DPR = Math.min(2, window.devicePixelRatio || 1); CW = r.width; CH = r.height; cv.width = Math.round(CW * DPR); cv.height = Math.round(CH * DPR); SH = Math.round(Math.max(400, Math.min(700, 600 * CH / CW))); LW = Math.round(Math.max(600, Math.min(900, SH * CW / CH))); SC = Math.min(CW / LW, CH / SH); TX = (CW - LW * SC) / 2; TY = (CH - SH * SC) / 2; BASE = SH - 90; setN(N)}
+        addEventListener('resize', layout);
+        function init() {
+            setN(mode === 'watch' ? 10 : LV[lvl - 1]);
+            const v = [...Array(N)].map((_, k) => k + 1).sort(() => Math.random() - .5);
+            st = {arr: v.map((x, k) => ({v: x, x: X0 + k * S})), key: null, lift: 0, cmp: -1, done: 0, hx: LW / 2, keyAt: 0};
+            i = 1; fin = false; mist = 0; score = 0; combo = 0; fT = 0; wait = 700; parts = []; startKey();
+        }
+        const canShift = () => j > 0 && st.arr[j - 1].v > st.key.v;
+        function setMsg() {
+            stat.textContent = mode === 'play' ? 'Level ' + lvl + '/4 · Score ' + (total + score) + ' · Combo ×' + combo + ' · Mistakes ' + mist : '';
+            if (fin) {msg.textContent = 'Sorted ✓'; return }
+            msg.textContent = mode === 'play'
+                ? (j > 0 ? 'Is the bar on the left bigger than the key? Yes → tap that bar. No → tap the orange block to drop it.' : 'Far left reached → tap the orange block to drop it.')
+                : (j > 0 ? 'a[' + (j - 1) + '] > key ?' : 'j = 0 → insert');
+        }
+        function spark(x, y, c, n, up) {for (let q = 0; q < n; q++)parts.push({x, y, vx: (Math.random() - .5) * 6, vy: -Math.random() * (up || 5) - 1, l: 40, c})}
+        function startKey() {
+            if (i >= N) {
+                fin = true; st.done = N - 1; st.cmp = -1; setMsg();
+                if (mode === 'play') {
+                    total += score; sfx.win();
+                    for (let q = 0; q < 70; q++)parts.push({x: Math.random() * LW, y: -10, vx: (Math.random() - .5) * 3, vy: Math.random() * 3, l: 90, c: ['#ffb020', '#6be68c', '#58bff5', '#ff6b8b'][q % 4]});
+                    setTimeout(() => {
+                        if (lvl < 4) {lvl++; showCard('Level ' + (lvl - 1) + ' cleared! 🎉', 'Score ' + total + ' · ' + mist + ' mistake' + (mist === 1 ? '' : 's') + '. Next: ' + LV[lvl - 1] + ' bars.', 'Next level ▶', true)}
+                        else {showCard('All levels done! 🏆', 'Final score ' + total + '. You are an Insertion Sort master!', '▶ Play again', false)}
+                    }, 1500)
+                }
+                return
+            }
+            st.key = st.arr[i]; st.arr[i] = null; st.keyAt = i; j = i; st.cmp = j - 1; sfx.pick(); setMsg();
+        }
+        function shift() {st.arr[j] = st.arr[j - 1]; st.arr[j - 1] = null; j--; st.keyAt = j; st.cmp = j - 1; sfx.shift(); setMsg()}
+        function drop() {const x = X0 + j * S + W / 2; st.arr[j] = st.key; st.key = null; st.cmp = -1; st.done = i; i++; sfx.drop(); spark(x, BASE - st.arr[j].v * U, '#6be68c', 14, 4); startKey()}
+        function wrong() {mist++; combo = 0; shake = 12; sfx.bad(); setMsg(); msg.textContent = 'Not quite — try again 🙂'}
+        function good(slot, pts) {combo++; score += 10 * Math.min(combo, 5); sfx.good(); spark(X0 + slot * S + W / 2, BASE - 40, '#ffd070', 10)}
+        cv.addEventListener('pointerdown', e => {
+            if (mode !== 'play' || fin) return; audio();
+            const r = cv.getBoundingClientRect(), x = (e.clientX - r.left - TX) / SC, slot = Math.floor((x - X0) / S);
+            if (j > 0 && slot === j - 1) {if (canShift()) {good(slot); shift()} else wrong()}
+            else if (slot === j) {if (!canShift()) {good(slot); drop()} else wrong()}
+        });
+        function showCard(t, s, pl, c) {
+            $('ct').textContent = t; $('cs').textContent = s; $('bp').textContent = pl || '▶ Play'; cont = !!c;
+            ov.style.display = 'flex'; back.style.visibility = 'hidden'; ctl.style.display = 'none';
+            mode = 'watch'; paused = false; init();
+        }
+        function go(m) {
+            audio(); music(); ov.style.display = 'none'; back.style.visibility = 'visible'; mode = m; paused = false;
+            ctl.style.display = m === 'watch' ? 'flex' : 'none'; $('pz').textContent = '⏸ Pause'; init()
+        }
+        $('bp').onclick = () => {if (!cont) {lvl = 1; total = 0} go('play')};
+        $('bw').onclick = () => go('watch');
+        back.onclick = () => {lvl = 1; total = 0; showCard('Insertion Sort', 'Pick up a block, shift the bigger ones right, then drop it in its place.', '▶ Play', false)};
+        $('pz').onclick = () => {paused = !paused; $('pz').textContent = paused ? '▶ Resume' : '⏸ Pause'};
+        $('sp').onclick = () => {spd = spd === 1 ? 2 : spd === 2 ? 4 : 1; $('sp').textContent = '⏩ ' + spd + '×'};
+        $('sh').onclick = () => init();
+        /* ---------- drawing ---------- */
+        function box(x, y, w, h, c1, c2, c3) {
+            g.fillStyle = c1; g.fillRect(x, y, w, h);
+            g.fillStyle = c2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + D, y - D * .6); g.lineTo(x + w + D, y - D * .6); g.lineTo(x + w, y); g.fill();
+            g.fillStyle = c3; g.beginPath(); g.moveTo(x + w, y); g.lineTo(x + w + D, y - D * .6); g.lineTo(x + w + D, y + h - D * .6); g.lineTo(x + w, y + h); g.fill();
+        }
+        function pal(b, k) {
+            if (st.key === b) return ['#e9a21b', '#ffd070', '#b57a0c'];
+            if (k === st.cmp) return ['#1f8fd0', '#58bff5', '#146a9c'];
+            if (k <= st.done) return ['#2fbf5a', '#6be68c', '#1f8a3f'];
+            return ['#2b3446', '#46526b', '#1c2330'];
+        }
+        function frame(t) {
+            requestAnimationFrame(frame);
+            const dt = Math.min(50, t - last); last = t;
+            if (mode === 'watch' && !paused) {
+                wait -= dt * spd;
+                if (wait <= 0) {
+                    if (fin) {if (!fT) {fT = 1; wait = 2500} else init()}
+                    else {canShift() ? shift() : drop(); wait = 550}
+                }
+            }
+            const k = Math.min(1, dt * spd / 220);
+            g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); g.setTransform(DPR * SC, 0, 0, DPR * SC, DPR * TX, DPR * TY);
+            if (shake > 0) {g.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake); shake *= .85; if (shake < .5) shake = 0}
+            g.fillStyle = '#3a4560'; g.fillRect(X0 - 24, BASE + 2, N * S + 40, 16);
+            g.fillStyle = '#252d40'; g.fillRect(X0 - 24, BASE + 18, N * S + 40, 6);
+            g.fillStyle = '#8b94a8'; g.fillRect(X0 - 30, 30, 4, BASE - 28); g.fillRect(X0 + N * S + 22, 30, 4, BASE - 28); g.fillRect(X0 - 30, 30, N * S + 56, 5);
+            st.arr.forEach((b, s) => {if (b) b.x += ((X0 + s * S) - b.x) * k});
+            const kb = st.key; let target = LW / 2;
+            if (kb) {kb.x += ((X0 + st.keyAt * S) - kb.x) * k; target = kb.x + W / 2}
+            st.lift += ((kb ? 1 : 0) - st.lift) * k; st.hx += (target - st.hx) * k;
+            g.textAlign = 'center'; g.font = 'bold ' + Math.round(Math.max(W * .32, 15 / SC)) + 'px system-ui';
+            st.arr.forEach((b, s) => {
+                if (!b) return; const c = pal(b, s), h = b.v * U;
+                box(b.x, BASE - h, W, h, c[0], c[1], c[2]);
+                g.fillStyle = '#fff'; g.fillText(b.v, b.x + W / 2, BASE - h / 2 + 5)
+            });
+            const keyTop = kb ? BASE - kb.v * U - 70 * st.lift : 80;
+            g.fillStyle = '#cfd6e6'; g.fillRect(st.hx - 8, 26, 16, 12);
+            g.strokeStyle = '#cfd6e6'; g.lineWidth = 2; g.beginPath(); g.moveTo(st.hx, 38); g.lineTo(st.hx, kb ? keyTop - 12 : 80); g.stroke();
+            if (kb) {
+                const c = pal(kb, -1), h = kb.v * U;
+                g.fillStyle = '#cfd6e6'; g.fillRect(st.hx - 9, keyTop - 14, 18, 6);
+                box(kb.x, keyTop, W, h, c[0], c[1], c[2]);
+                g.fillStyle = '#fff'; g.fillText(kb.v, kb.x + W / 2, keyTop + h / 2 + 5)
+            }
+            else {g.fillStyle = '#cfd6e6'; g.fillRect(st.hx - 9, 78, 18, 8)}
+            parts = parts.filter(p => p.l > 0);
+            parts.forEach(p => {p.x += p.vx; p.y += p.vy; p.vy += .22; p.l--; g.globalAlpha = Math.min(1, p.l / 30); g.fillStyle = p.c; g.fillRect(p.x, p.y, 5, 5)});
+            g.globalAlpha = 1;
+            if (mode === 'play') {
+                g.setTransform(DPR, 0, 0, DPR, 0, 0); const tx = 'Lv ' + lvl + '/4  ·  Score ' + (total + score) + '  ·  Combo ×' + combo + '  ·  Miss ' + mist; g.font = '600 14px system-ui'; const tw = g.measureText(tx).width + 36;
+                g.fillStyle = 'rgba(20,28,48,.85)'; g.beginPath(); g.roundRect(CW / 2 - tw / 2, CH - 52, tw, 32, 16); g.fill();
+                g.textAlign = 'center'; g.fillStyle = '#cfd6e6'; g.fillText(tx, CW / 2, CH - 31)
+            }
+        }
+        const de = document.documentElement, FS = de.requestFullscreen || de.webkitRequestFullscreen;
+        function setImm(on) {document.body.classList.toggle('imm', on); $('fs').textContent = on ? '✕' : '⛶'; setTimeout(layout, 60)}
+        $('fs').onclick = () => {
+            const d = document, inFS = d.fullscreenElement || d.webkitFullscreenElement;
+            if (document.body.classList.contains('imm')) {setImm(false); if (inFS) try {(d.exitFullscreen || d.webkitExitFullscreen).call(d)} catch (e) { } return }
+            setImm(true);
+            try {const p = FS && FS.call(de); if (p && p.catch) p.catch(() => { })} catch (e) { }
+        };
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => {if (!document.fullscreenElement && !document.webkitFullscreenElement) setImm(false)}));
+        if (window.ResizeObserver) new ResizeObserver(layout).observe(stg);
+        layout(); init(); requestAnimationFrame(frame);
+    </script>
+</body>
+
+</html>
